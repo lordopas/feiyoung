@@ -10,7 +10,6 @@ fi
 chmod u+x feiy
 cp feiy /bin
 cp feiy.conf /etc/
-cat passdata.txt >> /etc/feiy.conf
 
 # 设置开机自启
 sed -i "/^feiy -login/ c\ " /etc/rc.local
