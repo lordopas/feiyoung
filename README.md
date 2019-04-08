@@ -46,7 +46,7 @@
     
 ### 3、将install目录（包括文件）复制到路由器里
     // TODO
-### 4、运行install.sh(在install目录下运行一下两行)
+### 4、运行install.sh(在install目录下运行以下两行)
     chmod u+x install.sh
     sh install.sh
     
