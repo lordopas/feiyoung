@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
 from urllib import request, parse
 import datetime
@@ -239,7 +240,7 @@ def login_online():
 
 
 if __name__ == '__main__':
-    a = argparse.ArgumentParser(description='模拟飞扬联网', usage='python feiy.py -i 100.64.xx.xx')
+    a = argparse.ArgumentParser(description='模拟飞扬联网', usage='python3 feiy.py -i 100.64.xx.xx -l')
     a.add_argument('-l', '--login', help='登录', action="store_true")
     a.add_argument('-o', '--logout', help='登出', action="store_true")
     a.add_argument('-i', '--ip', help='使用指定ip')
