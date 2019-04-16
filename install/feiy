@@ -2,18 +2,41 @@
 
 path="/etc/feiy.conf"
 
-user=`cat $path | grep -vE "^#" | grep user= |awk -F= '{print $2}' `
-passwd=`cat $path | grep -vE "^#" | grep passwd= |awk -F= '{print $2}' `
-session=`echo -n $passwd | md5sum | cut -c-32`
-acname=`cat $path | grep -vE "^#" | grep acname= |awk -F= '{print $2}' `
-system=`cat $path | grep -vE "^#" | grep pe= |awk -F= '{print $2}' `
-prefix=`cat $path | grep -vE "^#" | grep pe_name= |awk -F= '{print $2}' `
-loginUrl=`cat $path | grep -vE "^#" | grep loginUrl= |awk -F= '{print $2}' `
-logoutUrl=`cat $path | grep -vE "^#" | grep logoutUrl= |awk -F= '{print $2}' `
-ipv4=`ifconfig | grep "100.64" | awk '{ print $2}'|awk -F: '{print $2}'`
+user=""
+passwd=""
+session=""
+acname=""
+system=""
+prefix=""
+loginUrl=""
+logoutUrl=""
+ipv4=""
+is_pc=""
+
+init() {
+    user=`cat $path | grep -vE "^#" | grep user= |awk -F= '{print $2}' `
+    passwd=`cat $path | grep -vE "^#" | grep passwd= |awk -F= '{print $2}' `
+    session=`echo -n $passwd | md5sum | cut -c-32`
+    acname=`cat $path | grep -vE "^#" | grep acname= |awk -F= '{print $2}' `
+    system=`cat $path | grep -vE "^#" | grep pe= |awk -F= '{print $2}' `
+    prefix=`cat $path | grep -vE "^#" | grep pe_name= |awk -F= '{print $2}' `
+    loginUrl=`cat $path | grep -vE "^#" | grep loginUrl= |awk -F= '{print $2}' `
+    logoutUrl=`cat $path | grep -vE "^#" | grep logoutUrl= |awk -F= '{print $2}' `
+    is_pc="false"
+    ipv4=`ifconfig | grep "100.64" | awk '{ print $2}' | awk -F: '{print $2}'`
+
+    if [ ${#ipv4} == "0" ]; then
+        date +"[%Y-%m-%d %H:%M:%S] ip获取失败，请重启网络或路由器" | tee -a /var/feiy.log
+        exit
+    fi
+}
 
 login() {
-	logout
+    if [ $is_pc == "true" ]; then
+		date +"[%Y-%m-%d %H:%M:%S] 正在模拟PC端" | tee -a /var/feiy.log
+	else
+		date +"[%Y-%m-%d %H:%M:%S] 正在模拟pe端" | tee -a /var/feiy.log
+	fi
 	date +"[%Y-%m-%d %H:%M:%S] ##############正在登录################" | tee -a /var/feiy.log
 	date +"[%Y-%m-%d %H:%M:%S] 用户: ${user}" | tee -a /var/feiy.log
 	date +"[%Y-%m-%d %H:%M:%S] 密码: ${passwd}" | tee -a /var/feiy.log
@@ -24,8 +47,9 @@ login() {
 	date +"[%Y-%m-%d %H:%M:%S] ---------------返回信息---------------" | tee -a /var/feiy.log
 	times=`date +"[%Y-%m-%d %H:%M:%S] "`
 	info=`echo "curl -d \"wlanacname=${acname}&wlanuserip=${ipv4}&button=Login&UserName=${prefix}${user}&Password=${passwd}\" --cookie \"JSESSIONID=${session}\" -H \"User-Agent: ${system}\" -H \"Content-Type: application/x-www-form-urlencoded\"  \"${loginUrl}\"" | sh | sed "s/^/$times&/g"  | tee -a /var/feiy.log`
-	echo $info | sed 's/\[20/\n&/g'
-	date +"[%Y-%m-%d %H:%M:%S] ######################################" | tee -a /var/feiy.log
+	echo $info | sed 's/\[20/\n&/g' | grep "<ReplyMessage>"
+    date +"[%Y-%m-%d %H:%M:%S] -------------------------------------" | tee -a /var/feiy.log
+	date +"[%Y-%m-%d %H:%M:%S] #####################################" | tee -a /var/feiy.log
 	date +"[%Y-%m-%d %H:%M:%S] " | tee -a /var/feiy.log
 	date +"[%Y-%m-%d %H:%M:%S] " | tee -a /var/feiy.log
 	date +"[%Y-%m-%d %H:%M:%S] " | tee -a /var/feiy.log
@@ -41,6 +65,11 @@ login() {
 
 
 logout() {
+    if [ $is_pc == "true" ]; then
+		date +"[%Y-%m-%d %H:%M:%S] 正在模拟PC端" | tee -a /var/feiy.log
+	else
+		date +"[%Y-%m-%d %H:%M:%S] 正在模拟pe端" | tee -a /var/feiy.log
+	fi
 	date +"[%Y-%m-%d %H:%M:%S] ##############正在登出################" | tee -a /var/feiy.log
 	date +"[%Y-%m-%d %H:%M:%S] 用户: ${user}" | tee -a /var/feiy.log
 	date +"[%Y-%m-%d %H:%M:%S] 密码: ${passwd}" | tee -a /var/feiy.log
@@ -59,34 +88,36 @@ logout() {
 }
 
 help() {
-	echo " 选项"
-	echo "-login 			登录，不能与-logout同时使用"
-	echo "-logout			登出，如果和-login同时使用此选项失效"
-	echo "-u 账户			使用指定账户登录，如果不使用-p选项密码则为默认"
-	echo "			   			例如：> feiy -login -u 18833334444"
-	echo "-p 加密后密码		 使用指定密码登录，如果不使用-p选项密码则为默认"
-	echo "			   			例如：> feiy -login -p c7b35aa7d17781442f600dbbf9070016"
-	echo "-ip ip地址		 使用指定ip登录，如果不使用-ip选项则自动获取"
-	echo "-d  日期			使用指定日期的密码登录"
-	echo "			   			例如：> feiy -login -d 29"
-	echo "--pc 				模拟pc端登录，默认为pe手机端"
-	echo "--config			查看配置文件"
-	echo "--help			查看帮助"
+	echo "选项"
+	printf "  %-20s\t%s\n" "-l, -login" "登录，不能与-logout同时使用"
+	printf "  %-20s\t%s\n" "-logout" "登出，如果和-login同时使用此选项失效"
+	printf "  %-20s\t%s\n" "-u <账户>" "使用指定账户登录，如果不使用-p选项密码则为默认"
+	printf "  %-20s\t%s\n" "" "   例如：> feiy -login -u 18833334444"
+	printf "  %-20s\t%s\n" "-p <加密后密码>" "使用指定密码登录，如果不使用-p选项密码则为默认"
+	printf "  %-20s\t%s\n" "" "   例如：> feiy -login -p c7b35aa7d17781442f600dbbf9070016"
+	printf "  %-20s\t%s\n" "-ip <ip地址>" "使用指定ip登录，如果不使用-ip选项则自动获取"
+	printf "  %-20s\t%s\n" "-d  <日期>" "使用指定日期的密码登录"
+	printf "  %-20s\t%s\n" "" "   例如：> feiy -login -d 29"
+	printf "  %-20s\t%s\n" "--pc" "模拟pc端登录，默认为pe手机端"
+	printf "  %-20s\t%s\n" "-c, --config" "查看配置文件"
+	printf "  %-20s\t%s\n" "-h, --help" "查看帮助"
 	exit
 }
 
 main() {
+	init
 	if [ $# -ge 1 ]; then
 		is_login="false"
 		is_logout="false"
-		is_pc="false"
-		
 		i=1;
 		until [ $i -gt $# ]
 		do
 			x=`echo $* | cut -d ' ' -f $i `
 			case $x in
 				"-login")
+					is_login="true"
+					;;
+                "-l")
 					is_login="true"
 					;;
 				"-logout")
@@ -105,7 +136,7 @@ main() {
 					today=`echo $* | cut -d ' ' -f $i `
 					today="^$today="
 					passwd=`cat $path | grep -vE "^#" | grep -E  $today |awk -F= '{print $2}' `
-					;;	
+					;;
 				"-ip")
 					i=$(($i+1))
 					ipv4=`echo $* | cut -d ' ' -f $i `
@@ -118,7 +149,14 @@ main() {
 				"--help")
 					help
 					;;
+                "-h")
+					help
+					;;
 				"--config")
+					cat $path
+					exit
+					;;
+                "-c")
 					cat $path
 					exit
 					;;
@@ -127,18 +165,13 @@ main() {
 			esac
 			i=$(($i+1))
 		done
-		
-		if [ $is_pc == "true" ]; then
-			date +"[%Y-%m-%d %H:%M:%S] 正在模拟PC端" | tee -a /var/feiy.log
-		else
-			date +"[%Y-%m-%d %H:%M:%S] 正在模拟pe端" | tee -a /var/feiy.log
-		fi
 		if [ $is_login == "true" ]; then
+            logout
 			login
 			if [ $? -ne 0  ]; then
 				today=`date +"%d" | sed -r 's/^0*([^0]+|0)$/\1/'`
-                                today="^$today="
-                                passwd=`cat $path | grep -vE "^#" | grep -E  $today |awk -F= '{print $2}' `
+				today="^$today="
+				passwd=`cat $path | grep -vE "^#" | grep -E  $today |awk -F= '{print $2}' `
 				login
 			fi
 		else
