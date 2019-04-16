@@ -246,7 +246,7 @@ if __name__ == '__main__':
     a.add_argument('-i', '--ip', help='使用指定ip')
     a.add_argument('-u', help='使用指定用户')
     a.add_argument('-p', help='使用指定密码')
-    a.add_argument('-d', '--device', help='使用指定设备(pc or pe),默认pc', default='pc')
+    a.add_argument('-d', '--device', help='使用指定设备(pc or pe)')
     args = a.parse_args()
     login(args)
     # 使用下面一个函数先要把这个函数中的三个参数填完,把上一行login(args)注释掉，把下一行注释去掉，可以通过在线运行python3的网站上运行
