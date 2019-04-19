@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import platform
+import time
 from urllib import request, parse
 import datetime
 import hashlib
@@ -91,7 +93,7 @@ class Password:
         word = data.get(day)
         word_len = len(word)
         wordbyte = [int(w) for w in word]
-        token = [Password.setbyte(n) for n in range(0, 256)]
+        token = [n if n<128 else n-256 for n in range(0, 256)]
         index = 0
         for i in range(0, 256):
             index += token[i] + ((wordbyte[i % word_len]) & (255))
@@ -101,11 +103,6 @@ class Password:
             token[index] = temp
         return token
 
-    def setbyte(n):
-        if n < 128:
-            return n
-        else:
-            return n - 256
 
 
 class Feiyoung:
@@ -175,10 +172,24 @@ class Feiyoung:
             return code
 
 
+def get_local_ip():
+    ip_info = ''
+    sysstr = platform.system()
+    if sysstr =="Windows":
+        ip_info = os.popen("ipconfig").read()
+    else:
+        ip_info = os.popen("ifconfig").read()
+    pattern = re.compile(r'(100.64.[0-9]+.[0-9]+)', re.I)
+    data = re.findall(pattern, ip_info)
+    if len(data) > 0:
+        return data[0]
+    else:
+        return ""
+
 def login(args):
     username = ''
     password = ''
-    ip = ''
+    ip = get_local_ip()
     conf = configparser.ConfigParser()
     if os.path.exists('feiy.conf'):
         conf.read("feiy.conf")
@@ -193,8 +204,9 @@ def login(args):
 
     is_exit = False
     if args.ip == None:
-        print("需要使用[-i]选项")
-        is_exit = True
+        if ip == '':
+            print("需要使用[-i]选项")
+            is_exit = True
     else:
         ip = args.ip
     if args.u == None:
